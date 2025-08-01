@@ -64,7 +64,7 @@ services:
     depends_on:
       - postgres
     command: >
-      start-dev --http-enabled=true --https-enabled=false --hostname-strict=false --hostname-strict-https=false
+      start-dev --http-enabled=true --https-port=-1 --hostname-strict=false --hostname-strict-https=false
     volumes:
       - ./keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json
     networks:
