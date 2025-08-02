@@ -63,8 +63,7 @@ services:
       KC_DB_PASSWORD: password
     depends_on:
       - postgres
-    command: >
-      start-dev --http-enabled=true --https-port=-1 --hostname-strict=false --hostname-strict-https=false
+    command: ["start-dev", "--import-realm"]
     volumes:
       - ./keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json
     networks:
