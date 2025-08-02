@@ -63,7 +63,12 @@ services:
       KC_DB_PASSWORD: password
     depends_on:
       - postgres
-    command: start-dev --hostname auth.picklemaps.royceesguerra.site --hostname-strict=false
+    command:
+      - start
+      - --hostname=auth.picklemaps.royceesguerra.site
+      - --hostname-strict=true
+      - --hostname-strict-https=true
+      - --proxy=edge
     networks:
       - elastic
 
