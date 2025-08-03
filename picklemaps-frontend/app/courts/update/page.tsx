@@ -5,7 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { useAppContext } from '@/providers/app-context-provider';
 import { CreateCourtRequest, Photo } from '@/domain/domain';
 import CreateCourtForm from '@/components/create-court-form';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import axios from 'axios';
 import { useRouter, useSearchParams } from 'next/navigation';
 
@@ -34,14 +34,13 @@ type FormData = {
   photos: string[];
 };
 
-export default function CreateCourtPage() {
+function CourtFormContent() {
   const { apiService } = useAppContext();
   const [error, setError] = useState<string | undefined>();
   const [loading, setLoading] = useState<boolean>(true);
-  const [courtId, setCourtId] = useState<string | null>(null);
-
-  const router = useRouter();
   const searchParams = useSearchParams();
+  const courtId = searchParams.get('id');
+  const router = useRouter();
 
   const methods = useForm<FormData>({
     defaultValues: {
@@ -71,16 +70,17 @@ export default function CreateCourtPage() {
   });
 
   useEffect(() => {
-    const id = searchParams.get('id');
-    setCourtId(id);
-  }, [searchParams]);
-
-  useEffect(() => {
-    const fetchCourt = async () => {
-      if (!apiService || !courtId) return;
+    const doUseEffect = async () => {
+      if (!apiService) return;
 
       setLoading(true);
       setError(undefined);
+
+      if (!courtId) {
+        setError('Court ID must be provided');
+        setLoading(false);
+        return;
+      }
 
       try {
         const court = await apiService.getCourt(courtId);
@@ -98,15 +98,7 @@ export default function CreateCourtPage() {
             province: court.address.province,
             postalCode: court.address.postalCode,
           },
-          operatingHours: {
-            monday: court.operatingHours.monday,
-            tuesday: court.operatingHours.tuesday,
-            wednesday: court.operatingHours.wednesday,
-            thursday: court.operatingHours.thursday,
-            friday: court.operatingHours.friday,
-            saturday: court.operatingHours.saturday,
-            sunday: court.operatingHours.sunday,
-          },
+          operatingHours: court.operatingHours,
           photos: court.photos?.map(photo => photo.url) || [],
         });
       } catch (err) {
@@ -124,19 +116,15 @@ export default function CreateCourtPage() {
       }
     };
 
-    fetchCourt();
+    doUseEffect();
   }, [apiService, courtId, methods]);
 
   const uploadPhoto = async (file: File, caption?: string): Promise<Photo> => {
-    if (null == apiService) {
-      throw Error('API Service not available!');
-    }
+    if (!apiService) throw Error('API Service not available!');
     return apiService.uploadPhoto(file, caption);
   };
 
   const onSubmit = async (data: FormData) => {
-    console.log('Form submitted:', data);
-
     try {
       const updateCourtRequest: CreateCourtRequest = {
         name: data.name,
@@ -148,27 +136,19 @@ export default function CreateCourtPage() {
         photoIds: data.photos,
       };
 
-      if (null == apiService) {
-        throw Error('API Service not available!');
-      }
-
+      if (!apiService) throw Error('API Service not available!');
       setError(undefined);
 
       if (courtId) {
         await apiService.updateCourt(courtId, updateCourtRequest);
-        router.push('/');
       } else {
         await apiService.createCourt(updateCourtRequest);
-        router.push('/');
       }
+      router.push('/');
     } catch (err) {
       if (axios.isAxiosError(err)) {
-        if (err.response?.status === 400) {
-          const errorData = err.response.data?.message;
-          setError(errorData);
-        } else {
-          setError(`API Error: ${err.response?.status}: ${err.response?.data}`);
-        }
+        const errorData = err.response?.data?.message;
+        setError(errorData ?? `API Error: ${err.response?.status}`);
       } else {
         setError(String(err));
       }
@@ -196,5 +176,13 @@ export default function CreateCourtPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+export default function CreateCourtPage() {
+  return (
+    <Suspense fallback={<div className="p-4 text-center">Loading page...</div>}>
+      <CourtFormContent />
+    </Suspense>
   );
 }
