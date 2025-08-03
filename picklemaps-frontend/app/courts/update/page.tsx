@@ -1,5 +1,7 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import { useForm, FormProvider } from 'react-hook-form';
 import { Card, CardContent } from '@/components/ui/card';
 import { useAppContext } from '@/providers/app-context-provider';
