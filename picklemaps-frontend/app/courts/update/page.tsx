@@ -5,7 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { useAppContext } from '@/providers/app-context-provider';
 import { CreateCourtRequest, Photo } from '@/domain/domain';
 import CreateCourtForm from '@/components/create-court-form';
-import { useEffect, useState, Suspense } from 'react';
+import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useRouter, useSearchParams } from 'next/navigation';
 
@@ -34,11 +34,12 @@ type FormData = {
   photos: string[];
 };
 
-function CourtFormContent() {
+export default function CreateCourtPage() {
   const { apiService } = useAppContext();
   const [error, setError] = useState<string | undefined>();
   const [loading, setLoading] = useState<boolean>(true);
   const searchParams = useSearchParams();
+
   const courtId = searchParams.get('id');
   const router = useRouter();
 
@@ -71,7 +72,9 @@ function CourtFormContent() {
 
   useEffect(() => {
     const doUseEffect = async () => {
-      if (!apiService) return;
+      if (!apiService) {
+        return;
+      }
 
       setLoading(true);
       setError(undefined);
@@ -98,7 +101,15 @@ function CourtFormContent() {
             province: court.address.province,
             postalCode: court.address.postalCode,
           },
-          operatingHours: court.operatingHours,
+          operatingHours: {
+            monday: court.operatingHours.monday,
+            tuesday: court.operatingHours.tuesday,
+            wednesday: court.operatingHours.wednesday,
+            thursday: court.operatingHours.thursday,
+            friday: court.operatingHours.friday,
+            saturday: court.operatingHours.saturday,
+            sunday: court.operatingHours.sunday,
+          },
           photos: court.photos?.map(photo => photo.url) || [],
         });
       } catch (err) {
@@ -120,11 +131,15 @@ function CourtFormContent() {
   }, [apiService, courtId, methods]);
 
   const uploadPhoto = async (file: File, caption?: string): Promise<Photo> => {
-    if (!apiService) throw Error('API Service not available!');
+    if (null == apiService) {
+      throw Error('API Service not available!');
+    }
     return apiService.uploadPhoto(file, caption);
   };
 
   const onSubmit = async (data: FormData) => {
+    console.log('Form submitted:', data);
+
     try {
       const updateCourtRequest: CreateCourtRequest = {
         name: data.name,
@@ -136,19 +151,27 @@ function CourtFormContent() {
         photoIds: data.photos,
       };
 
-      if (!apiService) throw Error('API Service not available!');
+      if (null == apiService) {
+        throw Error('API Service not available!');
+      }
+
       setError(undefined);
 
       if (courtId) {
         await apiService.updateCourt(courtId, updateCourtRequest);
+        router.push('/');
       } else {
         await apiService.createCourt(updateCourtRequest);
+        router.push('/');
       }
-      router.push('/');
     } catch (err) {
       if (axios.isAxiosError(err)) {
-        const errorData = err.response?.data?.message;
-        setError(errorData ?? `API Error: ${err.response?.status}`);
+        if (err.response?.status === 400) {
+          const errorData = err.response.data?.message;
+          setError(errorData);
+        } else {
+          setError(`API Error: ${err.response?.status}: ${err.response?.data}`);
+        }
       } else {
         setError(String(err));
       }
@@ -176,13 +199,5 @@ function CourtFormContent() {
         </CardContent>
       </Card>
     </div>
-  );
-}
-
-export default function CreateCourtPage() {
-  return (
-    <Suspense fallback={<div className="p-4 text-center">Loading page...</div>}>
-      <CourtFormContent />
-    </Suspense>
   );
 }
