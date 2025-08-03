@@ -1,7 +1,5 @@
 'use client';
 
-export const dynamic = 'force-dynamic';
-
 import { useForm, FormProvider } from 'react-hook-form';
 import { Card, CardContent } from '@/components/ui/card';
 import { useAppContext } from '@/providers/app-context-provider';
@@ -40,10 +38,10 @@ export default function CreateCourtPage() {
   const { apiService } = useAppContext();
   const [error, setError] = useState<string | undefined>();
   const [loading, setLoading] = useState<boolean>(true);
-  const searchParams = useSearchParams();
+  const [courtId, setCourtId] = useState<string | null>(null);
 
-  const courtId = searchParams.get('id');
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const methods = useForm<FormData>({
     defaultValues: {
@@ -73,19 +71,16 @@ export default function CreateCourtPage() {
   });
 
   useEffect(() => {
-    const doUseEffect = async () => {
-      if (!apiService) {
-        return;
-      }
+    const id = searchParams.get('id');
+    setCourtId(id);
+  }, [searchParams]);
+
+  useEffect(() => {
+    const fetchCourt = async () => {
+      if (!apiService || !courtId) return;
 
       setLoading(true);
       setError(undefined);
-
-      if (!courtId) {
-        setError('Court ID must be provided');
-        setLoading(false);
-        return;
-      }
 
       try {
         const court = await apiService.getCourt(courtId);
@@ -129,7 +124,7 @@ export default function CreateCourtPage() {
       }
     };
 
-    doUseEffect();
+    fetchCourt();
   }, [apiService, courtId, methods]);
 
   const uploadPhoto = async (file: File, caption?: string): Promise<Photo> => {
