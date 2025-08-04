@@ -11,7 +11,7 @@ export default function Hero() {
       </div>
       <div className="relative max-w-[1200px] mx-auto h-full flex flex-col justify-center px-4">
         <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
-          Discover Your Next Favorite Pickleball Court
+          Discover Your Next Favorite Pickleball Courts
         </h1>
         <p className="text-lg md:text-xl text-white/90 max-w-[600px]">
           Read authentic reviews from real players and find the perfect spot for your next game.
