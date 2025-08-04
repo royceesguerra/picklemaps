@@ -1,0 +1,41 @@
+name: Deploy to picklemaps-server
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Deploy via SSH with password
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          password: ${{ secrets.SSH_PASS }}
+          script: |
+            echo "==> Pulling latest code"
+            cd /opt/picklemaps
+            git pull origin main
+
+            echo "==> Restarting Docker services"
+            cd picklemaps-app/picklemaps-app
+            docker-compose down
+            docker-compose up -d
+
+            echo "==> Backend build and restart"
+            ./mvnw clean package -DskipTests
+            pm2 restart picklemaps-app || pm2 start java --name picklemaps-app -- -jar target/picklemaps-app-0.0.1-SNAPSHOT.jar
+            pm2 save
+
+            echo "==> Frontend build and restart"
+            cd /opt/picklemaps/picklemaps-frontend
+            npm install
+            npm run build
+            pm2 restart picklemaps-frontend || pm2 start npm --name picklemaps-frontend -- start
+            pm2 save
