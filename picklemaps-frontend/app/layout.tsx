@@ -9,7 +9,7 @@ import type React from 'react';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata = {
-  title: 'Pickle Maps',
+  title: 'Pickle Map',
   description: 'Discover and review pickleball courts',
 };
 
